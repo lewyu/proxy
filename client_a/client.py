@@ -246,7 +246,9 @@ class Client(object):
                 data = _data.get('data')
                 self.handle(op, data, addr)
             except:
-                self.__handle_chat(bytecode)
+                log = 'unknown error'
+                logging.info(log)
+                print(log)
 
 
 if __name__ == "__main__":
