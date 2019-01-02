@@ -172,14 +172,14 @@ class Client(object):
         ip = receiver[0]
         port = receiver[1]
         self.udp_client.sendto(data, (ip, port))
-        self.udp_client.sendto(data, (ip, port))
-        self.udp_client.sendto(data, (ip, port))
+        self.udp_client.sendto(data, (ip, port+1))
+        self.udp_client.sendto(data, (ip, port+2))
 
     def sync(self):
-        print('Connecting', end='')
+        print('Connecting...')
         sys.stdout.flush()
         times = 0
-        while self.ack != 2:
+        while self.ack < 3:
             self.request_update_socket()
             self.request_save_public_key()
             time.sleep(0.2)
@@ -194,13 +194,10 @@ class Client(object):
             times = (times+1) % 10
             if times == 0:
                 self.__init_udp_client()
-                print('.', end='')
-                sys.stdout.flush()
             _rpkm = self.receiver_public_key_md5
             log = 'send ack={} to {}'.format(0, _rpkm)
             logging.info(log)
 
-        print('')
         _rpkm = self.receiver_public_key_md5
         log = 'the connection to {} has been established '.format(_rpkm)
         logging.info(log)
@@ -208,10 +205,7 @@ class Client(object):
 
     def __handle_sync(self, data, addr):
         if self.receiver == addr:
-            if data.get('ack') == 1:
-                self.ack = 2
-            elif data.get('ack') == 0:
-                self.ack = 1
+            self.ack = max(self.ack, data.get('ack')) + 1
         else:
             self.receiver = addr
 
@@ -251,7 +245,6 @@ class Client(object):
                 self.handle(op, data, addr)
             except Exception as e:
                 logging.info(e)
-                print(e)
 
 
 if __name__ == "__main__":
