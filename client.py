@@ -3,6 +3,7 @@ import base64
 import configparser
 import signal
 import socket
+import sys
 import threading
 import time
 
@@ -61,7 +62,6 @@ class Client(object):
         finally:
             log = 'your id is {}'.format(self.public_key_md5)
             logging.info(log)
-            print(log)
 
     def request_update_receiver_public_key(self):
         rpkm = self.receiver_public_key_md5
@@ -69,7 +69,6 @@ class Client(object):
         self.udp_client.sendto(util.encode(_data), self.server)
         log = 'request receiver public key'
         logging.info(log)
-        print(log)
 
     def __handle_update_receiver_public_key(self, data):
         """
@@ -86,7 +85,6 @@ class Client(object):
         else:
             log = 'receiver public key does not match md5 code'
         logging.info(log)
-        print(log)
 
     def request_save_public_key(self):
         pkm = self.public_key_md5
@@ -95,14 +93,12 @@ class Client(object):
         self.udp_client.sendto(util.encode(_data), self.server)
         log = 'request saving public key'
         logging.info(log)
-        print(log)
 
     def request_update_socket(self):
         _data = {'op': 'gns'}
         self.udp_client.sendto(util.encode(_data), self.server)
         log = 'request socket'
         logging.info(log)
-        print(log)
 
     def __handel_update_socket(self, data):
         ip = data.get('ip')
@@ -110,7 +106,6 @@ class Client(object):
         self.socket = (ip, int(port))
         log = 'nat socket updated {}:{}'.format(ip, port)
         logging.info(log)
-        print(log)
 
     def __encrypt(self, plain, public_key):
         """
@@ -143,12 +138,10 @@ class Client(object):
             self.udp_client.sendto(util.encode(_data), self.server)
             log = 'request saving encrypted socket'
             logging.info(log)
-            print(log)
         except:
             log = 'an error occurred during encryption'
             self.request_update_receiver_public_key()
             logging.info(log)
-            print(log)
 
     def request_update_encrypted_socket(self):
         times = 1
@@ -160,12 +153,10 @@ class Client(object):
                 self.udp_client.sendto(util.encode(_data), self.server)
                 log = 'request receiver encrypted socket'
                 logging.info(log)
-                print(log)
                 flag = 0
             except:
                 log = 'an error occurred during decryption'
                 logging.info(log)
-                print(log)
                 time.sleep(times)
                 times = min(120, times*2)
 
@@ -176,36 +167,47 @@ class Client(object):
         self.receiver = (ip, port)
         log = 'receiver updated to {}:{}'.format(ip, port)
         logging.info(log)
-        print(log)
+
+    def __probe(self, data, receiver):
+        ip = receiver[0]
+        port = receiver[1]
+        self.udp_client.sendto(data, (ip, port))
+        self.udp_client.sendto(data, (ip, port+1))
+        self.udp_client.sendto(data, (ip, port+2))
+        self.udp_client.sendto(data, (ip, port+3))
+        self.udp_client.sendto(data, (ip, port+4))
+        self.udp_client.sendto(data, (ip, port+5))
 
     def sync(self):
+        print('Connecting', end='')
         while self.ack < 10:
-            time.sleep(1)
-            self.request_update_receiver_public_key()
-            self.request_save_public_key()
+            print('.', end='')
+            sys.stdout.flush()
             self.request_update_socket()
+            self.request_save_public_key()
+            time.sleep(0.5)
+            self.request_update_receiver_public_key()
+            time.sleep(0.5)
             self.request_save_encrypted_socket()
             self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
             if not self.receiver[0]:
                 continue
-            self.udp_client.sendto(util.encode(_data), self.receiver)
+            self.__probe(util.encode(_data), self.receiver)
             _rpkm = self.receiver_public_key_md5
             log = 'send ack={} to {}'.format(self.ack, _rpkm)
             logging.info(log)
-            print(log)
 
+        print('')
         _rpkm = self.receiver_public_key_md5
         log = 'the connection to {} has been established '.format(_rpkm)
         logging.info(log)
-        print(log)
         self.chat()
 
     def __handle_sync(self, data, addr):
         if self.receiver == addr:
             self.ack = data.get('ack') + 1
         else:
-            self.ack = 0
             self.receiver = addr
 
     def chat(self):
