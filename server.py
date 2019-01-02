@@ -32,7 +32,7 @@ def listener():
         try:
             _data = util.decode(bytecode)
             op = _data['op']
-            data = _data['data']
+            data = _data.get('data')
         except:
             source = '{}:{}'.format(addr[0], addr[1])
             logging.warning('unknown request from {}'.format(source))

@@ -1,9 +1,9 @@
-import json
 import base64
+import hashlib
+import json
 
 
 def md5sum(plain):
-    import hashlib
     hl = hashlib.md5()
     hl.update(str(plain).encode(encoding='utf-8'))
     crypt = hl.hexdigest()
@@ -11,17 +11,11 @@ def md5sum(plain):
 
 
 def encode(dic):
-    import json
-    import base64
-
     ans = base64.b64encode(json.dumps(dic).encode(encoding='utf-8'))
     return ans
 
 
 def decode(bytecode):
-    import json
-    import base64
-
     ans = json.loads(base64.b64decode(bytecode))
     return ans
 
