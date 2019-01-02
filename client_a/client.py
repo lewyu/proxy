@@ -29,7 +29,7 @@ class Client(object):
         self.__bufsize = 1024
         self.__init_rsa()
         self.__init_udp_client()
-        self.ack = 0
+        self.ack = True
 
     def __init_udp_client(self):
         """
@@ -177,7 +177,7 @@ class Client(object):
         print('Connecting', end='')
         sys.stdout.flush()
         times = 0
-        while self.ack < 10:
+        while self.ack:
             self.request_update_socket()
             self.request_save_public_key()
             time.sleep(0.2)
@@ -195,7 +195,7 @@ class Client(object):
                 print('.', end='')
                 sys.stdout.flush()
             _rpkm = self.receiver_public_key_md5
-            log = 'send ack={} to {}'.format(self.ack, _rpkm)
+            log = 'send ack={} to {}'.format(1, _rpkm)
             logging.info(log)
 
         print('')
@@ -205,8 +205,8 @@ class Client(object):
         self.chat()
 
     def __handle_sync(self, data, addr):
-        if self.receiver == addr:
-            self.ack = data.get('ack') + 1
+        if self.receiver == addr and data.get('ack'):
+            self.ack = False
         else:
             self.receiver = addr
 
