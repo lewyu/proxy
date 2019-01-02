@@ -1,8 +1,7 @@
-import socket
-import threading
 import logging
-import json
 import signal
+import socket
+
 import util
 
 UDP_SERVER = None
