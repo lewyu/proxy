@@ -30,6 +30,7 @@ class Client(object):
         self.__init_rsa()
         self.__init_udp_client()
         self.ack = 0
+        self.chat_status = 'close'
 
     def __init_udp_client(self):
         """
@@ -178,24 +179,20 @@ class Client(object):
     def sync(self):
         print('Connecting...')
         sys.stdout.flush()
-        times = 0
-        while self.ack < 3:
+        while True:
             self.request_update_socket()
             self.request_save_public_key()
-            time.sleep(0.2)
+            time.sleep(0.5)
             self.request_update_receiver_public_key()
-            time.sleep(0.2)
+            time.sleep(0.5)
             self.request_save_encrypted_socket()
             self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
             if not self.receiver[0]:
                 continue
             self.__probe(util.encode(_data), self.receiver)
-            times = (times+1) % 10
-            if times == 0:
-                self.__init_udp_client()
             _rpkm = self.receiver_public_key_md5
-            log = 'send ack={} to {}'.format(0, _rpkm)
+            log = 'send ack={} to {}'.format(self.ack, _rpkm)
             logging.info(log)
 
         _rpkm = self.receiver_public_key_md5
@@ -204,8 +201,13 @@ class Client(object):
         self.chat()
 
     def __handle_sync(self, data, addr):
+        if self.chat_status == 'close':
+            self.chat()
+            self.chat_status == 'open'
         if self.receiver == addr:
-            self.ack = max(self.ack, data.get('ack')) + 1
+            self.ack = data.get('ack') + 1
+            if self.ack > 10000:
+                self.ack = 0
         else:
             self.receiver = addr
 
@@ -244,7 +246,7 @@ class Client(object):
                 data = _data.get('data')
                 self.handle(op, data, addr)
             except Exception as e:
-                logging.info(e)
+                print(e)
 
 
 if __name__ == "__main__":
