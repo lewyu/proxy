@@ -180,7 +180,7 @@ class Client(object):
 
     def sync(self):
         while self.ack < 10:
-            time.sleep(0.1)
+            time.sleep(1)
             self.request_update_receiver_public_key()
             self.request_save_public_key()
             self.request_update_socket()
@@ -188,7 +188,6 @@ class Client(object):
             self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
             if not self.receiver[0]:
-                time.sleep(1)
                 continue
             self.udp_client.sendto(util.encode(_data), self.receiver)
             _rpkm = self.receiver_public_key_md5
