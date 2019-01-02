@@ -202,6 +202,7 @@ class Client(object):
         log = 'the connection to {} has been established '.format(_rpkm)
         logging.info(log)
         print(log)
+        self.chat()
 
     def __handle_sync(self, data, addr):
         if self.receiver == addr:
@@ -209,6 +210,16 @@ class Client(object):
         else:
             self.ack = 0
             self.receiver = addr
+
+    def chat(self):
+        print('Say something')
+        while True:
+            i = input()
+            _data = {"op": "chat", "data": {"info": str(i)}}
+            self.udp_client.sendto(util.encode(_data), self.receiver)
+
+    def __handle_chat(self, data):
+        print(data.get('info'))
 
     def handle(self, op, data, addr):
         if op == 'syn':
@@ -223,6 +234,8 @@ class Client(object):
             pass
         elif op == 'ges':
             self.__handle_update_encrypted_socket(data)
+        elif op == 'chat':
+            self.__handle_chat(data)
 
     def start(self):
         while True:
@@ -232,8 +245,8 @@ class Client(object):
                 op = _data['op']
                 data = _data.get('data')
                 self.handle(op, data, addr)
-            except Exception:
-                print(bytecode)
+            except:
+                self.__handle_chat(bytecode)
 
 
 if __name__ == "__main__":
