@@ -42,16 +42,16 @@ class Client(object):
         """
         try:
             with open('public.pem', 'rb') as f:
-                self.public_key = f.read().decode()
+                self.public_key = f.read().decode(encoding='utf-8')
                 self.public_key_md5 = util.md5sum(self.public_key)
             with open('private.pem', 'rb') as f:
-                self.private_key = f.read().decode()
+                self.private_key = f.read().decode(encoding='utf-8')
         except:
             rsa = RSA.generate(1024)
             raw_private_pem = rsa.exportKey()
             raw_public_pem = rsa.publickey().exportKey()
-            self.private_key = raw_private_pem.decode()
-            self.public_key = raw_public_pem.decode()
+            self.private_key = raw_private_pem.decode(encoding='utf-8')
+            self.public_key = raw_public_pem.decode(encoding='utf-8')
             self.public_key_md5 = util.md5sum(self.public_key)
             with open('public.pem', 'wb') as f:
                 f.write(raw_public_pem)
@@ -118,9 +118,9 @@ class Client(object):
         """
         rsakey = RSA.import_key(public_key)
         cipher = PKCS1_OAEP.new(rsakey)
-        _ciphertext = cipher.encrypt(plain.encode())
+        _ciphertext = cipher.encrypt(plain.encode(encoding='utf-8'))
         ciphertext = base64.b64encode(_ciphertext)
-        return ciphertext.decode()
+        return ciphertext.decode(encoding='utf-8')
 
     def __decrypt(self, ciphertext, private_key):
         """
@@ -128,10 +128,10 @@ class Client(object):
         """
         rsakey = RSA.import_key(private_key)
         cipher = PKCS1_OAEP.new(rsakey)
-        _ciphertext = ciphertext.encode()
+        _ciphertext = ciphertext.encode(encoding='utf-8')
         _ciphertext = base64.b64decode(_ciphertext)
         plaintext = cipher.decrypt(_ciphertext)
-        return plaintext.decode()
+        return plaintext.decode(encoding='utf-8')
 
     def request_save_encrypted_socket(self):
         try:
@@ -245,10 +245,9 @@ class Client(object):
                 op = _data['op']
                 data = _data.get('data')
                 self.handle(op, data, addr)
-            except:
-                log = 'unknown error'
-                logging.info(log)
-                print(log)
+            except Exception as e:
+                logging.info(e)
+                print(e)
 
 
 if __name__ == "__main__":
