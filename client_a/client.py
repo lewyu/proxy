@@ -172,28 +172,28 @@ class Client(object):
         ip = receiver[0]
         port = receiver[1]
         self.udp_client.sendto(data, (ip, port))
-        self.udp_client.sendto(data, (ip, port+1))
-        self.udp_client.sendto(data, (ip, port+2))
-        self.udp_client.sendto(data, (ip, port+3))
-        self.udp_client.sendto(data, (ip, port+4))
-        self.udp_client.sendto(data, (ip, port+5))
 
     def sync(self):
         print('Connecting', end='')
+        sys.stdout.flush()
+        times = 0
         while self.ack < 10:
-            print('.', end='')
-            sys.stdout.flush()
             self.request_update_socket()
             self.request_save_public_key()
-            time.sleep(0.5)
+            time.sleep(0.2)
             self.request_update_receiver_public_key()
-            time.sleep(0.5)
+            time.sleep(0.2)
             self.request_save_encrypted_socket()
             self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
             if not self.receiver[0]:
                 continue
             self.__probe(util.encode(_data), self.receiver)
+            times = (times+1) % 10
+            if times == 0:
+                self.__init_udp_client()
+                print('.', end='')
+                sys.stdout.flush()
             _rpkm = self.receiver_public_key_md5
             log = 'send ack={} to {}'.format(self.ack, _rpkm)
             logging.info(log)
