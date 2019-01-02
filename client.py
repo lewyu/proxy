@@ -145,12 +145,10 @@ class Client(object):
             logging.info(log)
             print(log)
         except:
-            log = 'an error occurred during encryption and re-request the receiver public key'
+            log = 'an error occurred during encryption'
             self.request_update_receiver_public_key()
             logging.info(log)
             print(log)
-            time.sleep(1)
-            self.request_save_encrypted_socket()
 
     def request_update_encrypted_socket(self):
         times = 1
@@ -165,10 +163,9 @@ class Client(object):
                 print(log)
                 flag = 0
             except:
-                log = 'an error occurred during decryption ,re-uploading the public key'
+                log = 'an error occurred during decryption'
                 logging.info(log)
                 print(log)
-                self.request_save_public_key()
                 time.sleep(times)
                 times = min(120, times*2)
 
@@ -183,15 +180,16 @@ class Client(object):
 
     def sync(self):
         while self.ack < 10:
-            time.sleep(1)
-            if self.receiver == ('', 0):
-                log = 'waiting for update receiver'
-                self.request_update_encrypted_socket()
-                continue
-            if self.ack == 0:
-                self.request_save_encrypted_socket()
-                self.request_update_encrypted_socket()
+            time.sleep(0.1)
+            self.request_update_receiver_public_key()
+            self.request_save_public_key()
+            self.request_update_socket()
+            self.request_save_encrypted_socket()
+            self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
+            if not self.receiver[0]:
+                time.sleep(1)
+                continue
             self.udp_client.sendto(util.encode(_data), self.receiver)
             _rpkm = self.receiver_public_key_md5
             log = 'send ack={} to {}'.format(self.ack, _rpkm)
@@ -258,9 +256,4 @@ if __name__ == "__main__":
     ID = _config.get("default", "ID")
     client = Client(host, int(port), ID)
     threading.Thread(target=client.start).start()
-    client.request_save_public_key()
-    client.request_update_receiver_public_key()
-    client.request_update_socket()
-    client.request_save_encrypted_socket()
-    client.request_update_encrypted_socket()
     client.sync()
