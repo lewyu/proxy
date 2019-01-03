@@ -36,6 +36,8 @@ class Client(object):
         """
         init self.udp_client
         """
+        if self.udp_client:
+            self.udp_client.close()
         self.udp_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def __init_rsa(self):
@@ -173,13 +175,10 @@ class Client(object):
         ip = receiver[0]
         port = receiver[1]
         self.udp_client.sendto(data, (ip, port))
-        self.udp_client.sendto(data, (ip, port+1))
-        self.udp_client.sendto(data, (ip, port+2))
 
     def sync(self):
         print('Connecting...')
-        sys.stdout.flush()
-        while True:
+        while self.ack < 3:
             self.request_update_socket()
             self.request_save_public_key()
             time.sleep(0.5)
@@ -192,8 +191,14 @@ class Client(object):
                 continue
             self.__probe(util.encode(_data), self.receiver)
             _rpkm = self.receiver_public_key_md5
-            log = 'send ack={} to {}'.format(self.ack, _rpkm)
+
+            _log = 'send ack = {} from {}:{} to {}:{}'
+            log = _log.format(
+                self.ack, self.socket[0], self.socket[1],
+                self.receiver[0], self.receiver[1]
+            )
             logging.info(log)
+            print(log)
 
         _rpkm = self.receiver_public_key_md5
         log = 'the connection to {} has been established '.format(_rpkm)
@@ -201,13 +206,9 @@ class Client(object):
         self.chat()
 
     def __handle_sync(self, data, addr):
-        if self.chat_status == 'close':
-            self.chat()
-            self.chat_status == 'open'
+        print(self.ack)
         if self.receiver == addr:
             self.ack = data.get('ack') + 1
-            if self.ack > 10000:
-                self.ack = 0
         else:
             self.receiver = addr
 
