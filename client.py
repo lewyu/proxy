@@ -206,11 +206,7 @@ class Client(object):
         self.chat()
 
     def __handle_sync(self, data, addr):
-        print(self.ack)
-        if self.receiver == addr:
-            self.ack = data.get('ack') + 1
-        else:
-            self.receiver = addr
+        self.ack = data.get('ack') + 1
 
     def chat(self):
         print('Say something')
