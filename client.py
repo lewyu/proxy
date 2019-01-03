@@ -30,7 +30,7 @@ class Client(object):
         self.__init_rsa()
         self.__init_udp_client()
         self.ack = 0
-        self.chat_status = 'close'
+        self.connect = False
 
     def __init_udp_client(self):
         """
@@ -147,23 +147,19 @@ class Client(object):
             logging.info(log)
 
     def request_update_encrypted_socket(self):
-        times = 1
-        flag = 1
-        while flag:
-            try:
-                pkm = self.receiver_public_key_md5
-                _data = {"op": "ges", "data": {"pkm": pkm}}
-                self.udp_client.sendto(util.encode(_data), self.server)
-                log = 'request receiver encrypted socket'
-                logging.info(log)
-                flag = 0
-            except:
-                log = 'an error occurred during decryption'
-                logging.info(log)
-                time.sleep(times)
-                times = min(120, times*2)
+        try:
+            pkm = self.receiver_public_key_md5
+            _data = {"op": "ges", "data": {"pkm": pkm}}
+            self.udp_client.sendto(util.encode(_data), self.server)
+            log = 'request receiver encrypted socket'
+            logging.info(log)
+        except:
+            log = 'an error occurred during decryption'
+            logging.info(log)
 
     def __handle_update_encrypted_socket(self, data):
+        if self.connect:
+            return
         socket = self.__decrypt(data.get('es'), self.private_key)
         ip = str(socket).split(':')[0]
         port = int(str(socket).split(':')[1])
@@ -178,12 +174,13 @@ class Client(object):
 
     def sync(self):
         print('Connecting...')
+        self.sleep = 0.1
         while self.ack < 3:
+            time.sleep(self.sleep)
+            self.sleep = min(self.sleep * 2, 4)
             self.request_update_socket()
             self.request_save_public_key()
-            time.sleep(0.5)
             self.request_update_receiver_public_key()
-            time.sleep(0.5)
             self.request_save_encrypted_socket()
             self.request_update_encrypted_socket()
             _data = {"op": "syn", "data": {"ack": self.ack}}
@@ -203,10 +200,14 @@ class Client(object):
         _rpkm = self.receiver_public_key_md5
         log = 'the connection to {} has been established '.format(_rpkm)
         logging.info(log)
-        self.chat()
 
     def __handle_sync(self, data, addr):
+        _log = 'receive ack = {} from {}:{}'
+        log = _log.format(data.get('ack'), addr[0], addr[1])
         self.ack = data.get('ack') + 1
+        self.sleep = 0.1
+        self.connect = True
+        self.receiver = addr
 
     def chat(self):
         print('Say something')
@@ -255,3 +256,4 @@ if __name__ == "__main__":
     client = Client(host, int(port), ID)
     threading.Thread(target=client.start).start()
     client.sync()
+    client.chat()
